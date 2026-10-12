@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>img{max-width:100%}[hidden]{display:none!important}</style>
+<title>The AI-Ready Accountant</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a field manual — sticky module bar, single reading column (~68ch), wide tables/cards break out to 1100px. */
+:root{
+  --paper:#F4F6F5; --sheet:#FFFFFF; --ink:#13222B; --muted:#56656D; --rule:#D5DDDB;
+  --ledger:#11695A; --ledger-soft:#E1F0EC; --amber:#B86E00; --amber-soft:#FBEFD9;
+  --risk:#B3261E; --risk-soft:#FBE4E2; --code-bg:#EEF2F1;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0F171B; --sheet:#162127; --ink:#E4ECEA; --muted:#9AAAB0; --rule:#2A3A40;
+  --ledger:#4CC3A6; --ledger-soft:#173A33; --amber:#F0A945; --amber-soft:#3A2C14;
+  --risk:#F2847B; --risk-soft:#3D1D1B; --code-bg:#1C2A30; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0F171B; --sheet:#162127; --ink:#E4ECEA; --muted:#9AAAB0; --rule:#2A3A40;
+  --ledger:#4CC3A6; --ledger-soft:#173A33; --amber:#F0A945; --amber-soft:#3A2C14;
+  --risk:#F2847B; --risk-soft:#3D1D1B; --code-bg:#1C2A30; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--body);margin:0}
+a{color:var(--ledger);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h2{font-size:clamp(1.7rem,4vw,2.4rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.25rem;font-weight:700}
+h4{font-size:1.02rem;font-weight:700}
+p{margin:0}
+.wrap{max-width:1100px;margin:0 auto;padding-inline:20px}
+.col{max-width:70ch}
+.eyebrow{font:500 .74rem/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ledger)}
+.lead{font-size:1.15rem;color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.stack-lg{display:flex;flex-direction:column;gap:28px}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--sheet);border-bottom:1px solid var(--rule)}
+.bar .wrap{display:flex;align-items:center;gap:18px;padding-block:10px}
+.brand{font:800 1rem/1 var(--display);white-space:nowrap;color:var(--ink);text-decoration:none}
+.brand span{color:var(--ledger)}
+.nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.nav::-webkit-scrollbar{display:none}
+.nav a{font:500 .8rem/1 var(--mono);color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:6px;white-space:nowrap}
+.nav a:hover{background:var(--ledger-soft);color:var(--ink)}
+.nav a b{color:var(--ledger);font-weight:500;margin-right:4px}
+
+/* hero */
+.hero{padding-block:56px 40px;border-bottom:1px solid var(--rule)}
+.hero h1{font-size:clamp(2.3rem,7vw,4.4rem);font-weight:800;letter-spacing:-.025em;max-width:16ch}
+.hero h1 em{font-style:normal;color:var(--ledger)}
+.hero .grid{display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:end}
+.journal{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;font:400 .82rem/1.5 var(--mono);overflow:hidden}
+.journal .jh{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--rule);color:var(--muted)}
+.journal table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.journal td{padding:7px 14px;border-bottom:1px dashed var(--rule)}
+.journal td.n{text-align:right}
+.journal tr:last-child td{border-bottom:0;font-weight:500;color:var(--ledger)}
+.journal .cap{padding:10px 14px;color:var(--muted);font-family:var(--body);font-size:.85rem;border-top:1px solid var(--rule)}
+
+/* sections */
+section.mod{padding-block:64px;border-bottom:1px solid var(--rule)}
+.mod-head{display:grid;grid-template-columns:90px 1fr;gap:20px;margin-bottom:32px}
+.mod-num{font:800 3.4rem/1 var(--display);color:var(--ledger);opacity:.85}
+.mod-head .stack{gap:10px}
+
+/* analogy cards */
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card .term{font:500 .74rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.analogy{border-left:3px solid var(--amber);padding:6px 0 6px 12px;font-style:italic;color:var(--ink);background:none}
+.analogy::before{content:"Like… ";font-style:normal;font-weight:700;color:var(--amber)}
+.note{background:var(--amber-soft);border-radius:10px;padding:16px 18px}
+.warn{background:var(--risk-soft);border-radius:10px;padding:16px 18px}
+.warn strong{color:var(--risk)}
+.tip{background:var(--ledger-soft);border-radius:10px;padding:16px 18px}
+
+/* ladder */
+.ladder{display:flex;flex-direction:column;gap:0;border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--sheet)}
+.rung{display:grid;grid-template-columns:56px 1fr 150px;gap:16px;padding:16px 18px;border-top:1px solid var(--rule);align-items:start}
+.rung:first-child{border-top:0}
+.rung .lvl{font:800 1.5rem/1 var(--display);color:var(--ledger)}
+.rung .meta{font:500 .78rem/1.4 var(--mono);color:var(--muted);text-align:right}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--rule);border-radius:10px;background:var(--sheet)}
+table.t{border-collapse:collapse;width:100%;min-width:760px;font-size:.95rem}
+table.t th{text-align:left;font:500 .72rem/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 14px;border-bottom:1px solid var(--rule);background:var(--code-bg)}
+table.t td{padding:12px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+table.t tr:last-child td{border-bottom:0}
+table.t td:first-child{font-weight:700}
+.pill{display:inline-block;font:500 .72rem/1 var(--mono);padding:5px 8px;border-radius:999px;white-space:nowrap}
+.p-easy{background:var(--ledger-soft);color:var(--ledger)}
+.p-med{background:var(--amber-soft);color:var(--amber)}
+.p-hard{background:var(--risk-soft);color:var(--risk)}
+
+/* tools */
+.tool{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:20px;display:grid;grid-template-columns:1fr;gap:10px;min-width:0}
+.tool .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.tool ul{margin:0;padding-left:20px}
+.kv{font-size:.9rem;color:var(--muted)}
+.kv b{color:var(--ink);font-weight:600}
+
+/* prompts */
+.framework{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.fw{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:14px;min-width:0}
+.fw .l{font:800 1.8rem/1 var(--display);color:var(--ledger)}
+.fw .w{font-weight:700;margin-top:6px}
+.fw .d{font-size:.88rem;color:var(--muted);margin-top:4px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.prompt{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;overflow:hidden;min-width:0}
+.prompt summary{cursor:pointer;list-style:none;padding:16px 18px;display:flex;gap:12px;align-items:baseline;justify-content:space-between}
+.prompt summary::-webkit-details-marker{display:none}
+.prompt summary .ttl{font-weight:700}
+.prompt summary .tag{font:500 .72rem/1 var(--mono);color:var(--muted);white-space:nowrap}
+.prompt[open] summary{border-bottom:1px solid var(--rule)}
+.prompt .body{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+pre.code{margin:0;background:var(--code-bg);border-radius:8px;padding:14px 16px;font:400 .84rem/1.55 var(--mono);white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+.copy{align-self:flex-start;font:500 .8rem/1 var(--mono);background:var(--ledger);color:var(--sheet);border:0;border-radius:6px;padding:9px 12px;cursor:pointer}
+.copy:hover{filter:brightness(1.08)}
+.bad{border-top:3px solid var(--risk)} .good{border-top:3px solid var(--ledger)}
+
+/* recipes */
+.recipe{background:var(--sheet);border:1px solid var(--rule);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px}
+.recipe .meta{display:flex;flex-wrap:wrap;gap:8px}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font:500 .8rem/1.2 var(--mono)}
+.flow span{background:var(--code-bg);padding:7px 10px;border-radius:6px}
+.flow i{font-style:normal;color:var(--muted)}
+ol.steps{margin:0;padding-left:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:12px}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:32px 1fr;gap:12px}
+ol.steps li::before{content:counter(s);font:700 .85rem/32px var(--mono);text-align:center;width:32px;height:32px;border-radius:50%;background:var(--ledger-soft);color:var(--ledger)}
+ul.clean{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+
+/* calculator */
+.calc{background:var(--sheet);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+.calc-row{display:grid;grid-template-columns:1fr 110px 110px 110px;gap:12px;padding:12px 18px;border-top:1px solid var(--rule);align-items:center;font-variant-numeric:tabular-nums}
+.calc-row.h{border-top:0;font:500 .72rem/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--code-bg)}
+.calc-row input{width:100%;font:500 .95rem var(--mono);padding:7px 8px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);color:var(--ink);text-align:right}
+.calc-row .out{text-align:right;font-family:var(--mono);font-weight:500}
+.calc-total{display:flex;flex-wrap:wrap;gap:28px;padding:20px 18px;background:var(--ledger-soft)}
+.calc-total .big{font:800 2.2rem/1 var(--display);color:var(--ledger);font-variant-numeric:tabular-nums}
+.calc-total .lbl{font-size:.85rem;color:var(--muted)}
+
+/* roadmap */
+.weeks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.week{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.week .wk{font:500 .74rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--amber)}
+.week label{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;cursor:pointer;font-size:.95rem}
+.week input{width:18px;height:18px;margin-top:3px;accent-color:var(--ledger)}
+.week input:checked + span{color:var(--muted);text-decoration:line-through}
+.progress{display:flex;align-items:center;gap:14px}
+.progress .track{flex:1;height:10px;border-radius:99px;background:var(--rule);overflow:hidden}
+.progress .fill{height:100%;background:var(--ledger);width:0;transition:width .3s}
+.progress .pct{font:500 .9rem var(--mono);min-width:5ch;text-align:right}
+
+/* library */
+.lib-filter{display:flex;flex-wrap:wrap;gap:8px}
+.lib-filter button{font:500 .8rem/1 var(--mono);padding:9px 12px;border-radius:999px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer}
+.lib-filter button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.lib{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.res{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.res .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.res a{font-weight:700;text-decoration:none;color:var(--ink)}
+.res a:hover{color:var(--ledger);text-decoration:underline}
+.res .k{font:500 .7rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ledger);white-space:nowrap}
+.res p{font-size:.92rem;color:var(--muted)}
+.res .when{font-size:.82rem;color:var(--amber);font-weight:600}
+
+footer{padding-block:40px 60px;color:var(--muted);font-size:.9rem}
+
+@media (max-width:860px){
+  .hero .grid,.grid2,.grid3,.compare,.weeks,.lib{grid-template-columns:1fr}
+  .framework{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .mod-head{grid-template-columns:1fr;gap:6px}
+  .mod-num{font-size:2.4rem}
+  .rung{grid-template-columns:44px 1fr}
+  .rung .meta{grid-column:2;text-align:left}
+  .calc-row{grid-template-columns:1fr 80px 80px;}
+  .calc-row .pctcol{display:none}
+}
+@media (max-width:480px){
+  body{font-size:16px}
+  .wrap{padding-inline:16px}
+  .framework{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .brand{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top">AI-Ready <span>Accountant</span></a>
+    <nav class="nav" aria-label="Modules">
+      <a href="#basics"><b>01</b>Basics</a>
+      <a href="#usecases"><b>02</b>Use cases</a>
+      <a href="#tools"><b>03</b>Tools</a>
+      <a href="#prompting"><b>04</b>Prompting</a>
+      <a href="#automation"><b>05</b>Automation</a>
+      <a href="#safety"><b>06</b>Safety</a>
+      <a href="#plan"><b>07</b>8-week plan</a>
+      <a href="#library"><b>08</b>Library</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+<!-- HERO -->
+<div class="hero">
+  <div class="wrap grid">
+    <div class="stack-lg">
+      <p class="eyebrow">A field manual for finance professionals · UAE &amp; Middle East</p>
+      <h1>Close the books faster with <em>AI as your junior</em></h1>
+      <p class="lead col">Written for an internal accountant at an IT services and consulting company, with no technical background assumed. Eight modules take you from "what is AI?" to running your own invoice, reconciliation and reporting automations, using tools your company most likely already pays for.</p>
+      <div class="tip col"><strong>How to use this site:</strong> read modules 01–04 in your first week (about 3 hours total). Then follow the 8-week plan in module 07, doing one automation recipe from module 05 every two weeks. Each module ends with something to try at your desk the same day.</div>
+    </div>
+    <div class="journal" aria-label="Example: time reallocated after AI adoption">
+      <div class="jh"><span>JV-2026-10 · Time reallocation</span><span>hrs / month</span></div>
+      <table>
+        <tr><td>Dr Analysis &amp; business partnering</td><td class="n">24.0</td></tr>
+        <tr><td>&nbsp;&nbsp;Cr Manual invoice keying</td><td class="n">(10.0)</td></tr>
+        <tr><td>&nbsp;&nbsp;Cr Reconciliation matching</td><td class="n">(8.0)</td></tr>
+        <tr><td>&nbsp;&nbsp;Cr Variance commentary drafting</td><td class="n">(6.0)</td></tr>
+        <tr><td>Net change in effort</td><td class="n">0.0</td></tr>
+      </table>
+      <p class="cap">The goal is a reclassification, not a write-off. AI takes the keying and matching; you keep the judgement. Figures are illustrative.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 01 BASICS -->
+<section class="mod" id="basics">
+  <div class="wrap">
+    <div class="mod-head">
+      <div class="mod-num">01</div>
+      <div class="stack">
+        <p class="eyebrow">Module 01 · 45 minutes</p>
+        <h2>AI in plain language</h2>
+        <p class="lead col">You do not need to know how an engine works to drive a car. You do need to know what the pedals do, how far the tank goes, and when to brake. This module is the pedals.</p>
+      </div>
+    </div>
+
+    <div class="stack-lg">
+      <div class="note col"><strong>The one analogy to remember:</strong> modern AI is a brilliant new intern who has read millions of books, contracts and accounting standards, types at lightning speed, works 24/7, but has never been inside your company, does not know your numbers, and will sometimes answer confidently when it should have said "I don't know". You would never let a new intern post a journal without review. Treat AI the same way.</div>
+
+      <h3>The family tree, from broad to specific</h3>
+      <div class="grid2">
+        <div class="card"><p class="term">Artificial Intelligence (AI)</p><h4>Computers doing tasks that normally need human thinking</h4><p>The umbrella term. Includes everything from spam filters to ChatGPT.</p><p class="analogy">"Finance" as a word: it covers AP, tax, treasury and FP&amp;A, each doing very different work.</p></div>
+        <div class="card"><p class="term">Machine Learning (ML)</p><h4>Learning rules from examples instead of being programmed</h4><p>Nobody writes "if vendor = du then GL 6120". The system studies 10,000 past invoices and works out the pattern itself.</p><p class="analogy">A junior who learns GL coding by watching how the team coded last year's invoices, rather than reading a manual.</p></div>
+        <div class="card"><p class="term">Generative AI / LLM</p><h4>AI that writes new text, tables, code or images</h4><p>A Large Language Model (ChatGPT, Microsoft Copilot, Claude, Gemini) predicts the next most likely word, over and over, after reading a huge share of the internet's text.</p><p class="analogy">Your phone's autocomplete, scaled up a million times, so it can finish an entire memo instead of one word.</p></div>
+        <div class="card"><p class="term">AI Agent</p><h4>AI that takes actions, not just answers</h4><p>An agent can open files, run a reconciliation, send a reminder email or update a spreadsheet, following a goal you set.</p><p class="analogy">The difference between an intern who tells you which invoices are overdue and one who also drafts and queues the chaser emails for your approval.</p></div>
+      </div>
+
+      <h3>Seven terms you will hear in every meeting</h3>
+      <div class="tbl-wrap">
+        <table class="t">
+          <tr><th>Term</th><th>What it means</th><th>Accounting analogy</th></tr>
+          <tr><td>Prompt</td><td>The instruction you type to the AI.</td><td>The briefing email you send a junior. Vague brief, vague work.</td></tr>
+          <tr><td>Hallucination</td><td>AI states something false as if it were true (a made-up IFRS paragraph number, a wrong total).</td><td>A plausible-looking figure plugged in to make a schedule balance. Always tick and bash.</td></tr>
+          <tr><td>Context window</td><td>How much text the AI can "see" at once in a conversation.</td><td>The size of the intern's desk. Papers that fall off the desk are forgotten.</td></tr>
+          <tr><td>Grounding / RAG</td><td>Making the AI answer from your own documents rather than from memory.</td><td>An open-book exam versus a closed-book one. Open-book answers are far more reliable.</td></tr>
+          <tr><td>Token</td><td>A chunk of text (roughly ¾ of a word) that AI tools count and charge by.</td><td>The billable unit, like a consultant's hour.</td></tr>
+          <tr><td>RPA</td><td>Robotic Process Automation: software that repeats exact clicks and keystrokes.</td><td>A vending machine: perfect for identical, rule-based steps; useless when the invoice layout changes.</td></tr>
+          <tr><td>Human-in-the-loop</td><td>A person reviews before AI output is used or posted.</td><td>Maker-checker control. AI is the maker; you stay the checker.</td></tr>
+        </table>
+      </div>
+
+      <h3>What AI is good at, and where it fails</h3>
+      <div class="grid2">
+        <div class="card good"><h4>Strong (use it freely, still review)</h4>
+          <ul class="clean">
+            <li>Summarising long contracts, SOWs, audit letters and policies</li>
+            <li>Drafting emails, variance commentary, memos, board-pack narrative</li>
+            <li>Explaining or writing Excel formulas, Power Query steps and macros</li>
+            <li>Reading invoices, receipts and PDFs and pulling out fields</li>
+            <li>Translating Arabic ↔ English correspondence</li>
+            <li>Spotting unusual items in a list (duplicates, outliers, odd vendors)</li>
+          </ul></div>
+        <div class="card bad"><h4>Weak (never trust without checking)</h4>
+          <ul class="clean">
+            <li>Arithmetic done "in its head" inside a chat. Let Excel do the maths.</li>
+            <li>Citing exact tax law articles, IFRS paragraphs or FTA rulings</li>
+            <li>Anything after its training date unless it searches the web</li>
+            <li>Your company's specific policies, unless you give them the document</li>
+            <li>Final judgement calls: provisions, revenue cut-off, impairment</li>
+          </ul></div>
+      </div>
+
+      <div class="tip col"><strong>Watch first (8 minutes):</strong> <a href="https://www.youtube.com/watch?v=LPZh9BOjkQs" target="_blank" rel="noopener">Large Language Models explained briefly</a> by 3Blue1Brown, made for the Computer History Museum. It is the clearest non-technical explanation available. <strong>Try today:</strong> open Microsoft Copilot (or your company's approved AI tool) and ask, "Explain IFRS 15 five-step model to me as if I were a first-year trainee, using an IT consulting project as the example." Use Microsoft 365 Copilot, your company's approved tool. Then check its answer against what you know. That is the habit this whole course builds.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 USE CASES -->
+<section class="mod" id="usecases">
+  <div class="wrap">
+    <div class="mod-head">
+      <div class="mod-num">02</div>
+      <div class="stack">
+        <p class="eyebrow">Module 02 · 40 minutes</p>
+        <h2>Where AI fits in your job</h2>
+        <p class="lead col">An IT services company in the Middle East has a very particular finance profile: project-based revenue, offshore delivery centres charging back costs, six Gulf currencies, VAT at different rates, a new corporate tax and a national e-invoicing mandate arriving in 2027. Here is where AI helps in each.</p>
+      </div>
+    </div>
+
+    <div class="stack-lg">
+      <div class="tbl-wrap">
+        <table class="t">
+          <tr><th>Area</th><th>The pain today</th><th>What AI does</th><th>Tool</th><th>Effort</th></tr>
+          <tr><td>Project revenue &amp; unbilled (IFRS 15)</td><td>Reading SOWs to find milestones, change requests and acceptance clauses for fixed-price and T&amp;M projects.</td><td>Summarises each contract into a one-page table: billing triggers, payment terms, retention, penalties, performance obligations.</td><td>Copilot / Claude / ChatGPT (approved)</td><td><span class="pill p-easy">Easy</span></td></tr>
+          <tr><td>Timesheet-to-invoice leakage</td><td>Billable hours logged but never invoiced, spotted months later.</td><td>Compares timesheet export vs billing register, flags gaps by project and consultant.</td><td>Copilot in Excel, Power Query</td><td><span class="pill p-med">Medium</span></td></tr>
+          <tr><td>Intercompany recharges</td><td>Offshore delivery centres (e.g. India) cross-charge costs; mismatches between entities at month-end.</td><td>Matches both sides of intercompany balances, explains differences (FX, timing, missing invoice).</td><td>Copilot Financial Reconciliation agent</td><td><span class="pill p-med">Medium</span></td></tr>
+          <tr><td>Multi-currency GCC consolidation</td><td>AED, SAR, QAR, KWD, OMR, BHD trial balances combined by hand.</td><td>Power Query pulls every entity file into one table; AI writes the steps and explains FX differences.</td><td>Power Query + Copilot</td><td><span class="pill p-med">Medium</span></td></tr>
+          <tr><td>VAT review (UAE 5%, KSA 15%)</td><td>Checking tax codes, reverse charge on imported services, missing TRNs.</td><td>Scans the invoice listing for wrong tax codes, missing TRN, reverse-charge candidates.</td><td>Copilot in Excel</td><td><span class="pill p-easy">Easy</span></td></tr>
+          <tr><td>E-invoicing readiness (2027)</td><td>Customer and vendor masters with missing or messy TRNs, addresses and IDs.</td><td>Cleans and validates master data; drafts the readiness checklist and supplier communications.</td><td>Copilot in Excel, Power Query</td><td><span class="pill p-easy">Easy</span></td></tr>
+          <tr><td>Accounts payable</td><td>Keying vendor PDF invoices into the ERP.</td><td>Reads the PDF, extracts vendor, TRN, date, amount, VAT; routes for approval.</td><td>Power Automate + AI Builder</td><td><span class="pill p-med">Medium</span></td></tr>
+          <tr><td>Collections (AR)</td><td>Long payment cycles with government and enterprise clients; chasing by email in two languages.</td><td>Drafts polite, firm reminders in English and Arabic; prioritises by ageing and amount.</td><td>Copilot in Outlook, Collections agent</td><td><span class="pill p-easy">Easy</span></td></tr>
+          <tr><td>Month-end variance commentary</td><td>Writing "why did cost go up" for 40 cost centres.</td><td>First draft of commentary from the variance table and your notes. You edit.</td><td>Copilot in Excel/Word</td><td><span class="pill p-easy">Easy</span></td></tr>
+          <tr><td>Corporate tax workpapers</td><td>Identifying non-deductible items (e.g. 50% entertainment) across the GL.</td><td>Flags GL lines whose descriptions suggest disallowable expenses for your review.</td><td>Copilot in Excel</td><td><span class="pill p-med">Medium</span></td></tr>
+          <tr><td>Audit PBC requests</td><td>Answering auditor queries, assembling evidence.</td><td>Drafts responses from your notes, builds the PBC tracker, summarises supporting docs.</td><td>Copilot in Word/Excel</td><td><span class="pill p-easy">Easy</span></td></tr>
+          <tr><td>Management reporting pack</td><td>Rebuilding the same PowerPoint each month.</td><td>Turns the Excel summary into slides with narrative; Power BI answers questions in plain English.</td><td>Copilot in PowerPoint, Power BI</td><td><span class="pill p-hard">Advanced</span></td></tr>
+        </table>
+      </div>
+
+      <h3>What is changing in the UAE right now</h3>
+      <div class="grid2">
+        <div class="card"><p class="term">E-invoicing · Peppol PINT AE</p><h4>PDF invoices are being replaced by structured data</h4><p>Businesses with annual revenue of AED 50 million or more must appoint an Accredited Service Provider by 30 October 2026 and go live on 1 January 2027. Those below that threshold follow on 1 July 2027, and government entities on 1 October 2027. Penalties include AED 5,000 per month for failing to implement or appoint an ASP.</p><p class="analogy">Moving from posting letters to sending bank transfers: the invoice becomes data a machine reads instantly, which is exactly what AI and automation need.</p></div>
+        <div class="card"><p class="term">Corporate tax · 9%</p><h4>A new annual workpaper cycle</h4><p>Returns and payment are due within nine months of the tax period end, so a December 2025 year-end was due by 30 September 2026. Records must be kept for at least seven years. Every recurring, rule-based review here is a candidate for AI-assisted first pass.</p><p class="analogy">A new annual statutory audit you now run in-house: the second year is always faster if you systemise the first.</p></div>
+      </div>
+
+      <h3>Real-world evidence</h3>
+      <div class="grid3">
+        <div class="card"><p class="term">Gartner · 2025</p><h4>59% of finance functions use AI</h4><p>Up from 37% in 2023, based on a survey of 183 CFOs and senior finance leaders. Optimism grows as teams get more hands-on experience.</p></div>
+        <div class="card"><p class="term">McKinsey · 2025</p><h4>88% of organisations use AI somewhere</h4><p>But nearly two-thirds have not scaled it. The companies getting real value redesign the workflow around AI instead of bolting it on.</p></div>
+        <div class="card"><p class="term">Roland Berger · case study</p><h4>24% less manual AP effort</h4><p>A global automotive manufacturer identified this saving by combining process clean-up with automation and AI. Standardise first, then automate.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 TOOLS -->
+<section class="mod" id="tools">
+  <div class="wrap">
+    <div class="mod-head">
+      <div class="mod-num">03</div>
+      <div class="stack">
+        <p class="eyebrow">Module 03 · 30 minutes</p>
+        <h2>Your toolkit</h2>
+        <p class="lead col">Your company licenses and allows Microsoft 365 Copilot, so it is your main AI tool from day one. It runs under your company login, keeps data inside the corporate Microsoft environment, and is the right place for real financial and client data. Power Automate, AI Builder and the Finance agents are separate add-ons; check with IT whether those are enabled before rungs 4 and 5.</p>
+      </div>
+    </div>
+
+    <div class="stack-lg">
+      <h3>The automation ladder: climb one rung at a time</h3>
+      <div class="ladder">
+        <div class="rung"><div class="lvl">1</div><div><h4>AI chat assistant</h4><p>Microsoft 365 Copilot Chat, or your company's approved ChatGPT/Claude/Gemini. Ask questions, draft, summarise.</p></div><div class="meta">Day 1<br>Available now</div></div>
+        <div class="rung"><div class="lvl">2</div><div><h4>Copilot inside Excel, Outlook, Word, Teams</h4><p>AI that sees the file or email you have open: "highlight duplicates", "summarise this thread", "draft a reply".</p></div><div class="meta">Week 1<br>Available now</div></div>
+        <div class="rung"><div class="lvl">3</div><div><h4>Power Query</h4><p>Built into Excel. Records your data-cleaning steps once and replays them every month. AI writes the steps for you.</p></div><div class="meta">Weeks 2–3<br>Free in Excel</div></div>
+        <div class="rung"><div class="lvl">4</div><div><h4>Power Automate + AI Builder</h4><p>"When an email with an invoice arrives, read it, save it, log it, ask for approval." Runs without you.</p></div><div class="meta">Weeks 4–6<br>May need IT approval</div></div>
+        <div class="rung"><div class="lvl">5</div><div><h4>Finance agents</h4><p>Copilot's Financial Reconciliation and Collections agents run reconciliations and AR follow-up on a schedule.</p></div><div class="meta">Month 2+<br>With IT/finance systems team</div></div>
+      </div>
+      <p class="col analogy">Learning to cook. First you follow a recipe card (chat), then use a food processor (Copilot in Excel), then batch-cook for the week (Power Query), then hire a kitchen that cooks every day without you (Power Automate and agents).</p>
+
+      <h3>Tool cards</h3>
+      <div class="grid2">
+        <div class="tool"><div class="row"><h4>Microsoft 365 Copilot</h4><span class="pill p-easy">Approved · start here</span></div>
+          <p class="kv"><b>Best for:</b> summarising Teams meetings and email threads, drafting in Word, analysing tables in Excel, building PowerPoint from a document.</p>
+          <p class="kv"><b>Why first:</b> works under your company's Microsoft login, so data stays within the corporate tenant.</p>
+          <p class="kv"><b>Try:</b> in Excel, format your data as a table (Ctrl+T), open Copilot, ask "Show the top 10 vendors by spend and any vendor that appears under two different names."</p></div>
+        <div class="tool"><div class="row"><h4>Copilot Finance agents</h4><span class="pill p-med">Reconciliation</span></div>
+          <p class="kv"><b>Best for:</b> matching two data sets in Excel (bank vs GL, intercompany A vs B, sub-ledger vs GL).</p>
+          <p class="kv"><b>How it works:</b> suggests matching rules, maps key and amount columns, then reports perfectly matched, potentially matched and unmatched items. Can run on a schedule.</p>
+          <p class="kv"><b>Learn:</b> <a href="https://learn.microsoft.com/en-us/copilot/finance/reconcile/reconcile-overview" target="_blank" rel="noopener">Microsoft Learn: reconciliation overview</a></p></div>
+        <div class="tool"><div class="row"><h4>Power Automate + AI Builder</h4><span class="pill p-med">Automation</span></div>
+          <p class="kv"><b>Best for:</b> invoice intake, approval routing, scheduled reports, reminder emails.</p>
+          <p class="kv"><b>Key feature:</b> the prebuilt "Extract information from invoices" model reads PDFs and gives each field a confidence score, so low-confidence items go to a human.</p>
+          <p class="kv"><b>Learn:</b> <a href="https://learn.microsoft.com/en-us/training/modules/ai-builder-invoice-processing/" target="_blank" rel="noopener">Microsoft Learn module (free)</a></p></div>
+        <div class="tool"><div class="row"><h4>Power Query (Excel)</h4><span class="pill p-easy">Free, underrated</span></div>
+          <p class="kv"><b>Best for:</b> combining 12 entity trial balances, cleaning ERP exports, unpivoting reports.</p>
+          <p class="kv"><b>AI angle:</b> ask Copilot or ChatGPT "write the Power Query M code to…" and paste it into the Advanced Editor.</p>
+          <p class="kv"><b>Learn:</b> <a href="https://learn.microsoft.com/en-us/power-query/" target="_blank" rel="noopener">Power Query documentation</a></p></div>
+        <div class="tool"><div class="row"><h4>Power BI with Copilot</h4><span class="pill p-hard">Later</span></div>
+          <p class="kv"><b>Best for:</b> project profitability and DSO dashboards that management can query in plain English.</p>
+          <p class="kv"><b>When:</b> once your data is clean through Power Query, usually month 2 or 3.</p></div>
+        <div class="tool"><div class="row"><h4>ChatGPT, Claude, Gemini</h4><span class="pill p-med">Policy check</span></div>
+          <p class="kv"><b>Best for:</b> learning, research, formula help, drafting with no confidential data.</p>
+          <p class="kv"><b>Rule:</b> Copilot is your approved tool, so all company and client data goes there. Use free consumer chatbots only for general learning with public information, unless IT approves them too.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 PROMPTING -->
+<section class="mod" id="prompting">
+  <div class="wrap">
+    <div class="mod-head">
+      <div class="mod-num">04</div>
+      <div class="stack">
+        <p class="eyebrow">Module 04 · 60 minutes, the most important module</p>
+        <h2>How to brief the AI</h2>
+        <p class="lead col">Prompting is delegation. The skills that make you good at briefing a junior (context, clear deliverable, an example, a deadline) make you good at prompting. Most bad AI output comes from a one-line brief.</p>
+      </div>
+    </div>
+
+    <div class="stack-lg">
+      <h3>The R-T-C-F-E-C brief</h3>
+      <div class="framework">
+        <div class="fw"><div class="l">R</div><div class="w">Role</div><div class="d">Who should it act as? "A senior IFRS accountant"</div></div>
+        <div class="fw"><div class="l">T</div><div class="w">Task</div><div class="d">The exact deliverable. "Draft variance commentary"</div></div>
+        <div class="fw"><div class="l">C</div><div class="w">Context</div><div class="d">Company, period, currency, audience, the data</div></div>
+        <div class="fw"><div class="l">F</div><div class="w">Format</div><div class="d">Table, bullets, word limit, tone</div></div>
+        <div class="fw"><div class="l">E</div><div class="w">Example</div><div class="d">Paste last month's good version</div></div>
+        <div class="fw"><div class="l">C</div><div class="w">Check</div><div class="d">"List assumptions and anything you're unsure of"</div></div>
+      </div>
+      <p class="col kv">ICAEW teaches a very similar five-part structure (Task, Persona, Context, Example, Format) in its generative AI courses for accountants. The extra "Check" step here forces the AI to tell you where it might be wrong.</p>
+
+      <div class="compare">
+        <div class="card bad"><p class="term">Weak brief</p><pre class="code">Explain the variance in IT costs.</pre><p class="kv">Result: generic textbook paragraph about IT costs. Useless.</p></div>
+        <div class="card good"><p class="term">Strong brief</p><pre class="code">You are a finance business partner at an IT services company in Dubai.
+Task: draft variance commentary for Sept 2026 vs budget for the CFO.
+Context: Software licences AED 412k vs budget 330k (+82k). Notes: Microsoft EA true-up 55k booked in Sept; 12 new delivery consultants onboarded for the Riyadh bank project, each needing licences.
+Format: 3 bullet points, max 60 words, state whether one-off or recurring.
+Check: list any assumption you made.</pre><p class="kv">Result: specific, ready to edit in under a minute.</p></div>
+      </div>
+
+      <div class="note col"><strong>Five habits that double the quality:</strong>
+        <ul class="clean" style="margin-top:8px">
+          <li><b>Iterate.</b> Treat the first answer as a draft: "shorter", "more formal", "add a column for VAT".</li>
+          <li><b>Give it the document.</b> Attach the contract or table rather than describing it.</li>
+          <li><b>Ask for its working.</b> "Show step by step how you reached this."</li>
+          <li><b>Ask it to interview you.</b> "Before you start, ask me up to five questions you need answered."</li>
+          <li><b>Save your best prompts</b> in a OneNote page. Your prompt library is a personal asset.</li>
+        </ul></div>
+
+      <h3>Prompt library for your role</h3>
+      <p class="col kv">Tap a prompt to open it, then copy and replace anything in [brackets]. Only paste company data into your company-approved tool.</p>
+      <div class="stack" id="prompts"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 AUTOMATION -->
+<section class="mod" id="automation">
+  <div class="wrap">
+    <div class="mod-head">
+      <div class="mod-num">05</div>
+      <div class="stack">
+        <p class="eyebrow">Module 05 · 2 hours per recipe</p>
+        <h2>Five automation recipes</h2>
+        <p class="lead col">Each recipe is a real, buildable workflow. Do them in order: each one teaches a skill the next one uses. Before automating anything, apply the accountant's rule: a messy process automated is just a faster mess. Standardise first.</p>
+      </div>
+    </div>
+
+    <div class="stack-lg">
+      <div class="recipe">
+        <div class="stack" style="gap:8px"><p class="eyebrow">Recipe A · Copilot in Excel</p><h3>Variance commentary in ten minutes instead of two hours</h3>
+        <div class="meta"><span class="pill p-easy">Easy</span><span class="pill p-easy">Saves ~2 hrs/month</span></div></div>
+        <div class="flow"><span>Budget vs actual table</span><i>→</i><span>Copilot flags material lines</span><i>→</i><span>You add 1-line reasons</span><i>→</i><span>Copilot drafts narrative</span><i>→</i><span>You review &amp; send</span></div>
+        <ol class="steps">
+          <li><span>Export budget vs actual by cost centre into Excel. Select the data and press <b>Ctrl+T</b> to make it a table (Copilot works best on tables).</span></li>
+          <li><span>Open Copilot and ask: "Add a column for variance in AED and %, then highlight rows where the variance exceeds AED 25,000 or 10%."</span></li>
+          <li><span>Add a "Notes" column and type a few words of the known reason for each highlighted row (e.g. "EA true-up", "new hires Riyadh").</span></li>
+          <li><span>Use the variance commentary prompt from Module 04 with the table attached. Ask for one bullet per highlighted line.</span></li>
+          <li><span>Check every number in the commentary against the table. Edit tone. Save the final as next month's "Example" for the prompt.</span></li>
+        </ol>
+      </div>
+
+      <div class="recipe">
+        <div class="stack" style="gap:8px"><p class="eyebrow">Recipe B · Power Query</p><h3>Combine all GCC entity trial balances with one click</h3>
+        <div class="meta"><span class="pill p-med">Medium</span><span class="pill p-easy">Saves ~4 hrs/month</span></div></div>
+        <div class="flow"><span>One folder of TB exports</span><i>→</i><span>Power Query "From Folder"</span><i>→</i><span>Add entity + FX rate</span><i>→</i><span>One AED table</span><i>→</i><span>Refresh next month</span></div>
+        <ol class="steps">
+          <li><span>Create a SharePoint or OneDrive folder. Save each entity's trial balance export (UAE, KSA, Qatar, Kuwait, Oman, Bahrain) with the same column layout and the entity code in the file name.</span></li>
+          <li><span>In Excel: <b>Data → Get Data → From File → From Folder</b>. Choose the folder, then <b>Combine &amp; Transform</b>.</span></li>
+          <li><span>Make a small table of month-end FX rates to AED and merge it in on the currency column. Add a column: Amount × Rate.</span></li>
+          <li><span>Stuck on a step? Ask Copilot: "Write Power Query M code that extracts the entity code from the Source.Name column, which looks like TB_KSA01_2026-09.xlsx."</span></li>
+          <li><span>Load to a sheet and pivot. Next month, drop new files in the folder and press <b>Refresh All</b>. Every step replays.</span></li>
+        </ol>
+        <p class="analogy">Recording a macro for your data cleaning, except it is readable and rarely breaks.</p>
+      </div>
+
+      <div class="recipe">
+        <div class="stack" style="gap:8px"><p class="eyebrow">Recipe C · Copilot Financial Reconciliation agent</p><h3>Bank or intercompany reconciliation, matched by AI</h3>
+        <div class="meta"><span class="pill p-med">Medium</span><span class="pill p-easy">Saves ~6–8 hrs/month</span></div></div>
+        <div class="flow"><span>Bank statement</span><i>+</i><span>GL cash export</span><i>→</i><span>Agent suggests rules</span><i>→</i><span>Matched / possible / unmatched</span><i>→</i><span>You clear exceptions</span></div>
+        <ol class="steps">
+          <li><span>Confirm with IT that the Finance agents add-in is enabled for your Microsoft 365 licence.</span></li>
+          <li><span>Put the bank statement and the GL cash ledger as two tables in one workbook (or two sheets).</span></li>
+          <li><span>Open the Finance agents panel in Excel and start a reconciliation. Review the suggested key columns (reference, date) and amount columns. Adjust tolerance for bank charges if needed.</span></li>
+          <li><span>Read the report: perfectly matched items need a glance; "potentially matched" need your judgement; unmatched become your reconciling items.</span></li>
+          <li><span>Once you trust the rules (after 2–3 months), save them as a template and set a recurring run so it is ready on working day 1.</span></li>
+        </ol>
+      </div>
+
+      <div class="recipe">
+        <div class="stack" style="gap:8px"><p class="eyebrow">Recipe D · Power Automate + AI Builder</p><h3>Vendor invoices read and logged automatically</h3>
+        <div class="meta"><span class="pill p-med">Medium</span><span class="pill p-easy">Saves ~10 hrs/month</span></div></div>
+        <div class="flow"><span>Email to ap@ inbox</span><i>→</i><span>Save PDF to SharePoint</span><i>→</i><span>AI Builder extracts fields</span><i>→</i><span>Row added to Excel log</span><i>→</i><span>Low confidence → you</span></div>
+        <ol class="steps">
+          <li><span>Ask IT for Power Automate access and AI Builder credits (often bundled with premium licences). Agree a shared mailbox or folder for invoices.</span></li>
+          <li><span>In Power Automate, create an <b>Automated cloud flow</b> with the trigger "When a new email arrives (V3)", filtered to "has attachments".</span></li>
+          <li><span>Add "Create file" to save each PDF to a SharePoint library, then the AI Builder action <b>Extract information from invoices</b> on that file.</span></li>
+          <li><span>Add "Add a row into a table" to write vendor, TRN, invoice number, date, net, VAT and total into an Excel log.</span></li>
+          <li><span>Add a condition: if any confidence score is below 0.80, or the TRN is blank, send yourself a Teams message to review. Otherwise route for approval.</span></li>
+          <li><span>Run it in parallel with your manual process for one month and compare. Only then switch over.</span></li>
+        </ol>
+        <p class="tip">This recipe also prepares you for e-invoicing, which delivers invoices as structured data from 2027. Your log and approval flow will carry straight across.</p>
+      </div>
+
+      <div class="recipe">
+        <div class="stack" style="gap:8px"><p class="eyebrow">Recipe E · Copilot in Outlook + Power Automate</p><h3>Weekly collections chasers, prioritised and drafted</h3>
+        <div class="meta"><span class="pill p-easy">Easy</span><span class="pill p-easy">Saves ~3 hrs/month</span></div></div>
+        <div class="flow"><span>AR ageing export</span><i>→</i><span>Copilot ranks by risk</span><i>→</i><span>Drafts EN / AR emails</span><i>→</i><span>You approve</span><i>→</i><span>Monday reminder</span></div>
+        <ol class="steps">
+          <li><span>Each Monday, export AR ageing. Ask Copilot in Excel: "List customers over 90 days or over AED 100,000 outstanding, sorted by amount, with their oldest invoice."</span></li>
+          <li><span>Use the collections prompt from Module 04 to draft emails. For Arabic-speaking contacts, ask for a bilingual version.</span></li>
+          <li><span>Review tone carefully for key government and enterprise clients, then send from your own mailbox.</span></li>
+          <li><span>In Power Automate, create a <b>Scheduled cloud flow</b> every Monday 08:00 that posts a Teams reminder with a link to the ageing file. Small nudge, big habit.</span></li>
+        </ol>
+      </div>
+
+      <h3>Estimate your own time savings</h3>
+      <p class="col kv">Enter your real hours per month. The "saving %" defaults are conservative starting estimates for planning only; replace them with what you measure after a month of use.</p>
+      <div class="calc" id="calc"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 SAFETY -->
+<section class="mod" id="safety">
+  <div class="wrap">
+    <div class="mod-head">
+      <div class="mod-num">06</div>
+      <div class="stack">
+        <p class="eyebrow">Module 06 · 20 minutes</p>
+        <h2>Controls: using AI without getting burned</h2>
+        <p class="lead col">Accountants already have the right instincts: segregation of duties, evidence, review. Apply exactly those to AI.</p>
+      </div>
+    </div>
+    <div class="stack-lg">
+      <div class="grid2">
+        <div class="card"><h4>1. Know where the data goes</h4><p>Your company's Microsoft 365 Copilot keeps prompts inside your organisation's Microsoft environment, so use it for work data. Free consumer chatbots may not. Never paste client names, contract values, salaries or bank details into any tool other than Copilot.</p><p class="analogy">Sending a confidential file by company email versus a personal Gmail.</p></div>
+        <div class="card"><h4>2. Every number gets ticked</h4><p>AI can produce totals that look right and are not. Do calculations in Excel; use AI to write the formula, not to be the formula. Reconcile AI-produced schedules back to the GL.</p></div>
+        <div class="card"><h4>3. Cite the source, not the AI</h4><p>For tax and IFRS positions, ask AI to point you to the relevant standard or FTA guide, then read the original. Your working paper cites the FTA, never "ChatGPT said".</p></div>
+        <div class="card"><h4>4. Keep an audit trail</h4><p>For automated flows, log what was processed, by which flow, and who approved. Auditors will ask how an automated control works and who reviews exceptions.</p></div>
+        <div class="card"><h4>5. Respect privacy law</h4><p>The UAE Personal Data Protection Law (Federal Decree-Law No. 45 of 2021) and your employer's global policies apply to employee and customer personal data. Strip or mask personal details before analysis where you can.</p></div>
+        <div class="card"><h4>6. Ask first, then build</h4><p>Before building any automation that touches the ERP or bank, show it to your manager and IT. In a large company, a shadow automation that breaks at year-end is a career risk; an approved one is a promotion story.</p></div>
+      </div>
+      <div class="warn col"><strong>Red lines.</strong> Do not let AI post journals, approve payments, change vendor bank details, or file tax returns without a human approval step. Treat any email asking to change bank details as fraud until verified by phone; AI makes such emails far more convincing.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 07 PLAN -->
+<section class="mod" id="plan">
+  <div class="wrap">
+    <div class="mod-head">
+      <div class="mod-num">07</div>
+      <div class="stack">
+        <p class="eyebrow">Module 07 · your 8-week plan</p>
+        <h2>From first prompt to first automation</h2>
+        <p class="lead col">About 2–3 hours a week. Tick items as you go; your progress is saved in this browser.</p>
+      </div>
+    </div>
+    <div class="stack-lg">
+      <div class="progress"><div class="track"><div class="fill" id="pfill"></div></div><div class="pct" id="ppct">0%</div></div>
+      <div class="weeks" id="weeks"></div>
+      <div class="tip col"><strong>Week 8 deliverable:</strong> a one-page note to your manager: what you automated, hours saved per month (from the calculator, now with measured numbers), controls in place, and the next process you propose. This is how individual experiments become recognised team practice.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 LIBRARY -->
+<section class="mod" id="library">
+  <div class="wrap">
+    <div class="mod-head">
+      <div class="mod-num">08</div>
+      <div class="stack">
+        <p class="eyebrow">Module 08 · reference library</p>
+        <h2>Videos, courses, guides and research</h2>
+        <p class="lead col">Hand-picked, in the order a beginner should take them. Start with anything marked "Start here".</p>
+      </div>
+    </div>
+    <div class="stack-lg">
+      <div class="lib-filter" id="filters" role="group" aria-label="Filter resources"></div>
+      <div class="lib" id="lib"></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap stack">
+    <p>Prepared October 2026. Product features, licences and UAE regulations change; confirm current details with your IT team, Microsoft Learn and the Federal Tax Authority before acting. Savings figures are illustrative planning estimates, not guarantees.</p>
+  </div>
+</footer>
+
+<script>
+/* ---------- Prompt library ---------- */
+const PROMPTS = [
+ {t:"Contract / SOW summary for revenue recognition", tag:"IFRS 15", p:`You are a senior IFRS 15 accountant at an IT services company.
+Task: summarise the attached Statement of Work for revenue recognition and billing.
+Context: customer is [customer type, e.g. a UAE government entity]; contract currency [AED]; project type [fixed price / time & materials / managed service].
+Format: a table with these rows: performance obligations, contract value, billing milestones and triggers, acceptance criteria, payment terms (days), retention %, penalties / liquidated damages, change-request clause, termination clause. Quote the clause number for each.
+Check: list anything ambiguous that I should raise with the project manager or legal.`},
+ {t:"Variance commentary for management", tag:"Month-end", p:`You are a finance business partner at an IT services company in the UAE.
+Task: draft month-end variance commentary for [Sept 2026] actual vs budget.
+Context: the attached table shows cost centre, actual, budget, variance AED and %. My notes on the reasons are in the Notes column. Audience: [CFO / regional MD].
+Format: one bullet per line where |variance| > AED [25,000] or > [10]%. Max 40 words each. State whether the driver is one-off, timing, or recurring.
+Example of our house style: "Travel +AED 38k: two unbudgeted client workshops in Riyadh; one-off."
+Check: do not invent reasons. If a highlighted line has no note, write "Reason required" instead.`},
+ {t:"Bilingual collections reminder", tag:"AR", p:`Act as an experienced credit controller in the Gulf.
+Task: write a payment reminder email in English, followed by a formal Arabic version.
+Context: customer [name withheld: "the Client"], invoice [INV-number] for AED [amount] dated [date], [days] days overdue. Relationship is important and long-term. This is the [first / second / final] reminder.
+Format: subject line, under 120 words per language, polite but clear, ask for an expected payment date, offer a call to resolve any query.
+Check: flag any phrase in the Arabic that may sound too direct for a government client.`},
+ {t:"Excel formula or Power Query helper", tag:"Excel", p:`You are an Excel expert teaching an accountant.
+Task: write a formula for [describe what you want, e.g. "look up the FX rate for each row's currency and month from the Rates table and return the AED amount"].
+Context: my data is in a table called [Data] with columns [Currency, Month, Amount]. Rates table is [Rates] with columns [Currency, Month, RateToAED]. I use Excel for Microsoft 365.
+Format: the formula, then a plain-English explanation of each part, then how to test it on two rows.
+Check: tell me what happens if a rate is missing, and how to show "Missing rate" instead of an error.`},
+ {t:"VAT review of an invoice listing", tag:"Tax", p:`You are a UAE and KSA VAT specialist.
+Task: review the attached purchase invoice listing and flag lines that need my attention.
+Context: UAE entity, standard rate 5%. Columns: vendor, vendor country, TRN, description, net, VAT, tax code.
+Format: a table of flagged lines with the reason: missing or invalid-looking TRN, VAT not equal to 5% of net, foreign vendor of services that may need reverse charge, zero-rated or exempt code that looks wrong.
+Check: do not conclude on treatment; give me the reason to investigate and the FTA guide I should read.`},
+ {t:"Disallowable expense scan for corporate tax", tag:"Tax", p:`You are a UAE corporate tax adviser.
+Task: scan the attached GL detail and flag expense lines that may be wholly or partly non-deductible under UAE Corporate Tax.
+Context: columns are account, account name, date, description, amount AED.
+Format: a table with line reference, amount, likely category (e.g. client entertainment, fines and penalties, donations to non-qualifying bodies), and why.
+Check: mark each as "likely" or "possible" and remind me which items need review against the Corporate Tax Law and FTA guidance rather than relying on this list.`},
+ {t:"Respond to an auditor query", tag:"Audit", p:`You are a financial controller responding to the external auditors.
+Task: draft a response to the audit query below.
+Context: query: "[paste query]". My notes and facts: [bullet points]. Supporting documents available: [list].
+Format: professional, factual, under 200 words, with a numbered list of the documents we will provide.
+Check: highlight any statement in your draft that I have not given you evidence for.`},
+ {t:"Interview me first (for any complex task)", tag:"Technique", p:`I need help with [task, e.g. designing a month-end close checklist for our UAE and KSA entities].
+Before you start, ask me up to 7 questions, one at a time, about anything you need to know to do this well. After I answer them all, summarise what you understood, then produce the deliverable.`},
+ {t:"Explain a concept I don't understand", tag:"Learning", p:`Explain [concept, e.g. "Power Automate cloud flows" or "retrieval augmented generation"] to me.
+I am an experienced accountant with very limited IT knowledge.
+Use one analogy from accounting or everyday life in the UAE, a 3-step real example from a finance team, and finish with 3 questions I could ask our IT team about it.`},
+ {t:"Meeting or email thread summary", tag:"Productivity", p:`Summarise this [Teams meeting transcript / email thread].
+Format: 1) decisions made, 2) actions with owner and due date as a table, 3) open questions, 4) anything with a financial impact and its estimated amount.
+Keep it under 200 words. Do not add actions that were not agreed.`}
+];
+const pc = document.getElementById('prompts');
+PROMPTS.forEach((x,i)=>{
+  const d=document.createElement('details'); d.className='prompt';
+  d.innerHTML=`<summary><span class="ttl">${x.t}</span><span class="tag">${x.tag}</span></summary>
+  <div class="body"><pre class="code" id="pr${i}"></pre><button class="copy" type="button" data-i="${i}">Copy prompt</button></div>`;
+  d.querySelector('pre').textContent=x.p; pc.appendChild(d);
+});
+pc.addEventListener('click',e=>{
+  const b=e.target.closest('.copy'); if(!b) return;
+  const txt=PROMPTS[b.dataset.i].p;
+  const done=()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy prompt',1600)};
+  const fallback=()=>{const r=document.createRange();r.selectNodeContents(document.getElementById('pr'+b.dataset.i));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected, press Ctrl+C';};
+  try{navigator.clipboard.writeText(txt).then(done,fallback)}catch(err){fallback()}
+});
+
+/* ---------- Calculator ---------- */
+const TASKS=[
+ ["Vendor invoice entry",12,60],["Bank & intercompany reconciliations",10,50],["Variance commentary & reporting packs",8,50],
+ ["Consolidating entity files",6,70],["Collections emails & follow-up",5,40],["Audit / tax queries & summaries",6,30]];
+const calc=document.getElementById('calc');
+let html=`<div class="calc-row h"><span>Task</span><span style="text-align:right">Hrs / month</span><span class="pctcol" style="text-align:right">Saving %</span><span style="text-align:right">Hrs saved</span></div>`;
+TASKS.forEach((t,i)=>{html+=`<div class="calc-row"><label for="h${i}">${t[0]}</label><input id="h${i}" type="number" min="0" step="0.5" value="${t[1]}"><span class="pctcol"><input id="s${i}" type="number" min="0" max="100" step="5" value="${t[2]}" aria-label="Saving percent for ${t[0]}"></span><span class="out" id="o${i}"></span></div>`});
+html+=`<div class="calc-total"><div><div class="big" id="tm">0</div><div class="lbl">hours saved per month</div></div><div><div class="big" id="ty">0</div><div class="lbl">hours per year (≈ <span id="td">0</span> working days)</div></div></div>`;
+calc.innerHTML=html;
+function recalc(){let tot=0;TASKS.forEach((t,i)=>{const h=parseFloat(document.getElementById('h'+i).value)||0;const s=Math.min(100,Math.max(0,parseFloat(document.getElementById('s'+i).value)||0));const v=h*s/100;tot+=v;document.getElementById('o'+i).textContent=v.toFixed(1)});
+ document.getElementById('tm').textContent=tot.toFixed(1);document.getElementById('ty').textContent=Math.round(tot*12);document.getElementById('td').textContent=Math.round(tot*12/8);}
+calc.addEventListener('input',recalc); recalc();
+
+/* ---------- 8-week plan ---------- */
+const WEEKS=[
+ ["Weeks 1–2 · Foundations",["Watch the 3Blue1Brown LLM video (8 min)","Read Modules 01–04 of this site","Ask IT whether Power Automate, AI Builder and Copilot Finance agents are enabled","Use Copilot Chat daily for one small task (email, summary)","Start a OneNote page for your best prompts"]],
+ ["Weeks 3–4 · Copilot at your desk",["Complete Recipe A (variance commentary)","Summarise one SOW with the IFRS 15 prompt","Use Copilot to summarise a Teams meeting","Enrol in Google AI Essentials or AI for Everyone"]],
+ ["Weeks 5–6 · Data plumbing",["Complete Recipe B (Power Query consolidation)","Ask AI to write and explain one Power Query step","Run the VAT review prompt on last month's listing","Complete Microsoft Learn's AI Builder invoice module"]],
+ ["Weeks 7–8 · First automation",["Build Recipe D or C with IT support","Run it in parallel with the manual process","Measure real hours saved and update the calculator","Write the one-page note to your manager"]]
+];
+const KEY='aira-plan-v1'; let saved={}; try{saved=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){saved={}}
+const wk=document.getElementById('weeks'); let n=0;
+WEEKS.forEach((w,wi)=>{const div=document.createElement('div');div.className='week';let h=`<p class="wk">${w[0]}</p>`;
+ w[1].forEach((item,ii)=>{const id=`w${wi}_${ii}`;n++;h+=`<label for="${id}"><input type="checkbox" id="${id}" ${saved[id]?'checked':''}><span>${item}</span></label>`});div.innerHTML=h;wk.appendChild(div)});
+function prog(){const cbs=wk.querySelectorAll('input');let c=0;cbs.forEach(cb=>{if(cb.checked)c++});const p=Math.round(c/cbs.length*100);document.getElementById('pfill').style.width=p+'%';document.getElementById('ppct').textContent=p+'%'}
+wk.addEventListener('change',e=>{saved[e.target.id]=e.target.checked;try{localStorage.setItem(KEY,JSON.stringify(saved))}catch(err){};prog()}); prog();
+
+/* ---------- Library ---------- */
+const LIB=[
+ {k:"Video",s:1,t:"Large Language Models explained briefly",u:"https://www.youtube.com/watch?v=LPZh9BOjkQs",d:"3Blue1Brown, 8 minutes. The clearest visual explanation of what ChatGPT-style AI actually does.",w:"Start here"},
+ {k:"Video",t:"Intro to Large Language Models",u:"https://www.youtube.com/watch?v=zjkBMFhNj_g",d:"Andrej Karpathy, 1 hour. A deeper, still non-mathematical tour of how LLMs are built and where they are going.",w:"After week 2"},
+ {k:"Course",s:1,t:"AI for Everyone (Andrew Ng)",u:"https://www.coursera.org/learn/ai-for-everyone",d:"DeepLearning.AI on Coursera, about 6 hours, no coding. What AI can and cannot do in a business, and how to pick projects.",w:"Start here"},
+ {k:"Course",t:"Google AI Essentials",u:"https://grow.google/ai-essentials/",d:"Five short modules on using AI tools, prompting and responsible use. Under 10 hours, certificate on completion; paid via Coursera subscription.",w:"Weeks 3–4"},
+ {k:"Course",t:"Extract invoice data with AI Builder",u:"https://learn.microsoft.com/en-us/training/modules/ai-builder-invoice-processing/",d:"Free Microsoft Learn module. Builds the core of Recipe D step by step.",w:"Weeks 5–6"},
+ {k:"Guide",s:1,t:"ICAEW Generative AI Guide",u:"https://www.icaew.com/technical/technology/artificial-intelligence/generative-ai-guide",d:"Written for accountants: use cases, risks, prompt engineering, ethics, cyber security and a do's and don'ts list.",w:"Start here"},
+ {k:"Guide",t:"Copilot Financial Reconciliation agent",u:"https://learn.microsoft.com/en-us/copilot/finance/reconcile/reconcile-overview",d:"Microsoft's official documentation for reconciling data sets in Excel with the Finance agents.",w:"Recipe C"},
+ {k:"Guide",t:"Extract invoice details with Power Automate and AI Builder",u:"https://www.matthewdevaney.com/extract-invoice-details-with-power-automate-and-ai-builder/",d:"Matthew Devaney's screenshot-by-screenshot blog tutorial, with a sample invoice to practise on.",w:"Recipe D"},
+ {k:"Guide",t:"Power Query documentation",u:"https://learn.microsoft.com/en-us/power-query/",d:"Microsoft's reference for Power Query in Excel, with beginner tutorials.",w:"Recipe B"},
+ {k:"Guide",t:"Prompt engineering overview (Anthropic)",u:"https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview",d:"Clear, practical prompting techniques that apply to any AI assistant, not only Claude.",w:"Module 04"},
+ {k:"Report",t:"Gartner: finance AI adoption steady in 2025",u:"https://www.gartner.com/en/newsroom/press-releases/2025-11-18-gartner-survey-shows-finance-ai-adoption-remains-steady-in-2025",d:"Survey of 183 CFOs: 59% of finance functions use AI; optimism rises with experience.",w:"Context"},
+ {k:"Report",t:"McKinsey: The state of AI in 2025",u:"https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai",d:"Nearly 2,000 respondents. AI use is widespread but scaling is rare; workflow redesign separates the leaders.",w:"Context"},
+ {k:"Report",t:"Stanford AI Index 2026",u:"https://hai.stanford.edu/ai-index/2026-ai-index-report",d:"The most-cited annual fact base on AI capability, adoption, economics and policy. Skim the key takeaways.",w:"Optional"},
+ {k:"Report",t:"KPMG: The Agentic Close",u:"https://kpmg.com/kpmg-us/content/dam/kpmg/pdf/2026/agentic-month-end-sprint-ready-finance.pdf",d:"How AI agents are moving the month-end close toward a continuous, exception-first process.",w:"Month 2"},
+ {k:"Report",t:"Roland Berger: AI in accounts payable",u:"https://www.rolandberger.com/en/Expertise/Case-Studies/Boosting-efficiency-in-accounts-payable.html",d:"Case study: 24% potential AP time saving at a global manufacturer, built on standardisation first.",w:"Before Recipe D"},
+ {k:"UAE",s:1,t:"KPMG: UAE e-invoicing phased implementation",u:"https://kpmg.com/us/en/taxnewsflash/news/2026/07/tnf-uae-phased-implementation-of-e-invoicing-beginning-january-1-2027.html",d:"Phase thresholds, ASP appointment deadlines and go-live dates for 2027.",w:"Start here"},
+ {k:"UAE",t:"VAT IT: UAE e-invoicing penalties",u:"https://vatit.com/?p=90686",d:"Summary of administrative penalties under Cabinet Decision No. 106 of 2025.",w:"Reference"},
+ {k:"UAE",t:"Gulf News: corporate tax filing deadline",u:"https://gulfnews.com/business/corporate-tax/uae-corporate-tax-deadline-2026-nears-fta-urges-filing-by-september-30-1.500660597",d:"FTA reminder on the nine-month filing and payment rule and record keeping.",w:"Reference"},
+ {k:"Research",t:"Navigating the Jagged Technological Frontier",u:"https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4573321",d:"Harvard Business School and BCG field experiment with 758 consultants: AI raised speed and quality on tasks inside its abilities, and hurt accuracy on tasks outside them.",w:"Why review matters"},
+ {k:"Research",t:"Generative AI at Work (Brynjolfsson, Li, Raymond)",u:"https://www.nber.org/papers/w31161",d:"NBER study of 5,000+ support agents: about 14% productivity gain on average, largest for less experienced staff.",w:"Evidence"},
+ {k:"Research",t:"Experimental evidence on productivity effects of generative AI",u:"https://www.science.org/doi/10.1126/science.adh2586",d:"Noy and Zhang, Science (2023): professionals writing business documents finished faster with better-rated quality.",w:"Evidence"},
+ {k:"Research",t:"GPTs are GPTs: labour market impact of LLMs",u:"https://arxiv.org/abs/2303.10130",d:"Estimates which occupations' tasks are most exposed to LLMs; accounting and auditing rank highly.",w:"Career context"}
+];
+const KINDS=["All","Start here","Video","Course","Guide","Report","UAE","Research"];
+const fl=document.getElementById('filters'), lib=document.getElementById('lib');
+KINDS.forEach((k,i)=>{const b=document.createElement('button');b.type='button';b.textContent=k;b.setAttribute('aria-pressed',i===0?'true':'false');b.dataset.k=k;fl.appendChild(b)});
+function renderLib(k){lib.innerHTML='';LIB.filter(r=>k==='All'||(k==='Start here'?r.s:r.k===k)).forEach(r=>{const d=document.createElement('div');d.className='res';
+ d.innerHTML=`<div class="top"><a href="${r.u}" target="_blank" rel="noopener"></a><span class="k">${r.k}</span></div><p></p><span class="when"></span>`;
+ d.querySelector('a').textContent=r.t;d.querySelector('p').textContent=r.d;d.querySelector('.when').textContent=r.w;lib.appendChild(d)})}
+fl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;fl.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');renderLib(b.dataset.k)});
+renderLib('All');
+</script>
+
+</body>
+</html>
